@@ -1,0 +1,45 @@
+# Multi-stage build for Gateway Service
+# Stage 1: Build
+FROM golang:1.22-alpine AS builder
+
+# Install build dependencies
+RUN apk add --no-cache git ca-certificates tzdata
+
+# Set working directory
+WORKDIR /app
+
+# Copy go mod files first for better caching
+COPY go.mod go.sum* ./
+RUN go mod download
+
+# Copy source code
+COPY . .
+
+# Build the binary
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build \
+    -ldflags='-w -s -extldflags "-static"' \
+    -o /gateway \
+    ./cmd/gateway
+
+# Stage 2: Final image (distroless for security)
+FROM gcr.io/distroless/static:nonroot
+
+# Copy timezone data and CA certificates
+COPY --from=builder /usr/share/zoneinfo /usr/share/zoneinfo
+COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
+
+# Copy binary
+COPY --from=builder /gateway /gateway
+
+# Use non-root user
+USER nonroot:nonroot
+
+# Expose ports
+EXPOSE 8080 9091
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+    CMD ["/gateway", "--health-check"] || exit 1
+
+# Run
+ENTRYPOINT ["/gateway"]

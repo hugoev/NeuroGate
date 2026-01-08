@@ -1,0 +1,59 @@
+# NeuroGate Terraform Variables Example
+# Copy this file to terraform.tfvars and customize values
+
+# Kubernetes Configuration
+kube_context = "kind-neurogate"  # or "docker-desktop", "minikube"
+
+# Namespace
+namespace = "neurogate"
+
+# Environment
+environment = "dev"  # dev, staging, prod
+
+# Replica Counts
+gateway_replicas = 1
+worker_replicas  = 3
+
+# Docker Images
+gateway_image = "neurogate/gateway:latest"
+worker_image  = "neurogate/worker:latest"
+
+# Ollama Configuration
+# Use "http://host.docker.internal:11434" for Docker Desktop/Kind on Mac
+# Use "http://localhost:11434" for direct host access
+# Use "http://ollama.ollama.svc.cluster.local:11434" for in-cluster Ollama
+ollama_host = "http://host.docker.internal:11434"
+
+# Logging
+log_level = "info"
+
+# API Authentication
+# IMPORTANT: Change these for production!
+api_keys = "your-secure-api-key-1,your-secure-api-key-2"
+
+# External Access
+gateway_node_port = 30080
+
+# Monitoring
+enable_prometheus = true
+enable_grafana    = true
+
+# IMPORTANT: Change this for production!
+grafana_admin_password = "secure-grafana-password"
+
+# Resource Limits (adjust based on your cluster capacity)
+worker_cpu_request    = "100m"
+worker_cpu_limit      = "500m"
+worker_memory_request = "128Mi"
+worker_memory_limit   = "512Mi"
+
+gateway_cpu_request    = "100m"
+gateway_cpu_limit      = "500m"
+gateway_memory_request = "64Mi"
+gateway_memory_limit   = "256Mi"
+
+# Additional Tags/Labels
+tags = {
+  "team"    = "platform"
+  "project" = "neurogate"
+}

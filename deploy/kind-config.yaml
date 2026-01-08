@@ -1,0 +1,42 @@
+# Kind cluster configuration for NeuroGate
+# Creates a local Kubernetes cluster with port mappings
+
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+name: neurogate
+
+nodes:
+  - role: control-plane
+    kubeadmConfigPatches:
+      - |
+        kind: InitConfiguration
+        nodeRegistration:
+          kubeletExtraArgs:
+            node-labels: "ingress-ready=true"
+    extraPortMappings:
+      # Gateway HTTP
+      - containerPort: 30080
+        hostPort: 30080
+        protocol: TCP
+      # Prometheus
+      - containerPort: 30090
+        hostPort: 30090
+        protocol: TCP
+      # Grafana
+      - containerPort: 30030
+        hostPort: 30030
+        protocol: TCP
+  
+  # Worker nodes (simulates multi-node cluster)
+  - role: worker
+  - role: worker
+
+# Enable metrics server
+featureGates:
+  "ValidatingAdmissionPolicy": true
+
+# Configure containerd to allow host.docker.internal
+containerdConfigPatches:
+  - |-
+    [plugins."io.containerd.grpc.v1.cri".registry.mirrors."docker.io"]
+      endpoint = ["https://registry-1.docker.io"]

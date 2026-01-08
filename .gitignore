@@ -1,0 +1,50 @@
+# Binaries
+bin/
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test binary
+*.test
+
+# Output of go coverage
+*.out
+coverage.out
+
+# Go workspace file
+go.work
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Terraform
+deploy/terraform/.terraform/
+deploy/terraform/*.tfstate
+deploy/terraform/*.tfstate.*
+deploy/terraform/.terraform.lock.hcl
+deploy/terraform/*.tfplan
+
+# Docker
+*.log
+
+# Kubernetes
+kubeconfig
+
+# Local env files
+.env
+.env.local
+*.env
+
+# Temporary files
+tmp/
+temp/

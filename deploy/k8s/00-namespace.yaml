@@ -1,0 +1,30 @@
+# NeuroGate Kubernetes Namespace
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: neurogate
+  labels:
+    app: neurogate
+    managed-by: kubectl
+---
+# ConfigMap for shared configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: neurogate-config
+  namespace: neurogate
+data:
+  LOG_LEVEL: "info"
+  LOG_FORMAT: "json"
+  # Use host.docker.internal for Docker Desktop / Kind on Mac
+  OLLAMA_URL: "http://host.docker.internal:11434"
+---
+# Secret for API keys
+apiVersion: v1
+kind: Secret
+metadata:
+  name: neurogate-secrets
+  namespace: neurogate
+type: Opaque
+stringData:
+  API_KEYS: "neurogate-secret-key-1,neurogate-secret-key-2"

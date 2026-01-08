@@ -1,0 +1,106 @@
+# NeuroGate Worker Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: neurogate-worker
+  namespace: neurogate
+  labels:
+    app: neurogate
+    component: worker
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: neurogate
+      component: worker
+  template:
+    metadata:
+      labels:
+        app: neurogate
+        component: worker
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9090"
+        prometheus.io/path: "/metrics"
+    spec:
+      containers:
+        - name: worker
+          image: neurogate/worker:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 50051
+              name: grpc
+              protocol: TCP
+            - containerPort: 9090
+              name: metrics
+              protocol: TCP
+          envFrom:
+            - configMapRef:
+                name: neurogate-config
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: metrics
+            initialDelaySeconds: 10
+            periodSeconds: 30
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: metrics
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
+---
+# Worker Service - ClusterIP for internal access only
+apiVersion: v1
+kind: Service
+metadata:
+  name: neurogate-worker
+  namespace: neurogate
+  labels:
+    app: neurogate
+    component: worker
+spec:
+  type: ClusterIP
+  selector:
+    app: neurogate
+    component: worker
+  ports:
+    - name: grpc
+      port: 50051
+      targetPort: grpc
+      protocol: TCP
+    - name: metrics
+      port: 9090
+      targetPort: metrics
+      protocol: TCP
+---
+# Headless Service for individual pod discovery (optional, for advanced use)
+apiVersion: v1
+kind: Service
+metadata:
+  name: neurogate-worker-headless
+  namespace: neurogate
+  labels:
+    app: neurogate
+    component: worker
+spec:
+  type: ClusterIP
+  clusterIP: None
+  selector:
+    app: neurogate
+    component: worker
+  ports:
+    - name: grpc
+      port: 50051
+      targetPort: grpc

@@ -1,0 +1,144 @@
+# NeuroGate Docker Compose
+# For local development without Kubernetes
+version: '3.8'
+
+services:
+  # Worker 1
+  worker-1:
+    build:
+      context: .
+      dockerfile: Dockerfile.worker
+    container_name: neurogate-worker-1
+    ports:
+      - "50051:50051"
+      - "9090:9090"
+    environment:
+      - GRPC_PORT=50051
+      - METRICS_PORT=9090
+      - OLLAMA_URL=http://host.docker.internal:11434
+      - LOG_LEVEL=info
+      - LOG_FORMAT=json
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:9090/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+
+  # Worker 2
+  worker-2:
+    build:
+      context: .
+      dockerfile: Dockerfile.worker
+    container_name: neurogate-worker-2
+    ports:
+      - "50052:50051"
+      - "9092:9090"
+    environment:
+      - GRPC_PORT=50051
+      - METRICS_PORT=9090
+      - OLLAMA_URL=http://host.docker.internal:11434
+      - LOG_LEVEL=info
+      - LOG_FORMAT=json
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:9090/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+
+  # Worker 3
+  worker-3:
+    build:
+      context: .
+      dockerfile: Dockerfile.worker
+    container_name: neurogate-worker-3
+    ports:
+      - "50053:50051"
+      - "9093:9090"
+    environment:
+      - GRPC_PORT=50051
+      - METRICS_PORT=9090
+      - OLLAMA_URL=http://host.docker.internal:11434
+      - LOG_LEVEL=info
+      - LOG_FORMAT=json
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:9090/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+
+  # Gateway
+  gateway:
+    build:
+      context: .
+      dockerfile: Dockerfile.gateway
+    container_name: neurogate-gateway
+    ports:
+      - "8080:8080"
+      - "9091:9091"
+    environment:
+      - HTTP_PORT=8080
+      - METRICS_PORT=9091
+      - WORKER_ADDRESSES=worker-1:50051,worker-2:50051,worker-3:50051
+      - API_KEYS=neurogate-secret-key-1,neurogate-secret-key-2
+      - LOG_LEVEL=info
+      - LOG_FORMAT=json
+    depends_on:
+      worker-1:
+        condition: service_healthy
+      worker-2:
+        condition: service_healthy
+      worker-3:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+
+  # Prometheus
+  prometheus:
+    image: prom/prometheus:v2.48.0
+    container_name: neurogate-prometheus
+    ports:
+      - "9094:9090"
+    volumes:
+      - ./deploy/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.enable-lifecycle'
+    restart: unless-stopped
+
+  # Grafana
+  grafana:
+    image: grafana/grafana:10.2.0
+    container_name: neurogate-grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=neurogate
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - grafana-data:/var/lib/grafana
+    depends_on:
+      - prometheus
+    restart: unless-stopped
+
+volumes:
+  prometheus-data:
+  grafana-data:
+
+networks:
+  default:
+    name: neurogate-network

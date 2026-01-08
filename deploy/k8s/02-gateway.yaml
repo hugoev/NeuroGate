@@ -1,0 +1,93 @@
+# NeuroGate Gateway Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: neurogate-gateway
+  namespace: neurogate
+  labels:
+    app: neurogate
+    component: gateway
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: neurogate
+      component: gateway
+  template:
+    metadata:
+      labels:
+        app: neurogate
+        component: gateway
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9091"
+        prometheus.io/path: "/metrics"
+    spec:
+      containers:
+        - name: gateway
+          image: neurogate/gateway:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8080
+              name: http
+              protocol: TCP
+            - containerPort: 9091
+              name: metrics
+              protocol: TCP
+          env:
+            # Point to worker service
+            - name: WORKER_ADDRESSES
+              value: "neurogate-worker:50051"
+          envFrom:
+            - configMapRef:
+                name: neurogate-config
+            - secretRef:
+                name: neurogate-secrets
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "64Mi"
+            limits:
+              cpu: "500m"
+              memory: "256Mi"
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 30
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
+---
+# Gateway Service - NodePort for external access
+apiVersion: v1
+kind: Service
+metadata:
+  name: neurogate-gateway
+  namespace: neurogate
+  labels:
+    app: neurogate
+    component: gateway
+spec:
+  type: NodePort
+  selector:
+    app: neurogate
+    component: gateway
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
+      nodePort: 30080
+      protocol: TCP
+    - name: metrics
+      port: 9091
+      targetPort: metrics
+      protocol: TCP

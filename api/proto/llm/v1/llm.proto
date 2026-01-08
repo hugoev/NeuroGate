@@ -1,0 +1,105 @@
+// NeuroGate LLM Service Protocol Buffer Definition
+// This defines the gRPC contract between Gateway and Worker nodes
+
+syntax = "proto3";
+
+package llm.v1;
+
+option go_package = "github.com/hugovillarreal/neurogate/api/proto/llm/v1;llmv1";
+
+// LLMService defines the interface for text generation
+// Workers implement this service to handle inference requests
+service LLMService {
+  // GenerateText sends a prompt to the LLM and returns the generated response
+  rpc GenerateText(PromptRequest) returns (PromptResponse);
+  
+  // StreamGenerateText sends a prompt and streams back tokens as they're generated
+  rpc StreamGenerateText(PromptRequest) returns (stream TokenResponse);
+  
+  // HealthCheck allows the gateway to verify worker availability
+  rpc HealthCheck(HealthCheckRequest) returns (HealthCheckResponse);
+}
+
+// PromptRequest contains the input for text generation
+message PromptRequest {
+  // The unique request identifier for tracing
+  string request_id = 1;
+  
+  // The prompt text to send to the LLM
+  string prompt = 2;
+  
+  // The model to use (e.g., "llama3", "mistral")
+  string model = 3;
+  
+  // Maximum number of tokens to generate
+  int32 max_tokens = 4;
+  
+  // Temperature for sampling (0.0 - 2.0)
+  float temperature = 5;
+  
+  // Optional system prompt for context
+  string system_prompt = 6;
+}
+
+// PromptResponse contains the generated text
+message PromptResponse {
+  // The unique request identifier (echoed back)
+  string request_id = 1;
+  
+  // The generated text response
+  string response = 2;
+  
+  // Number of tokens in the prompt
+  int32 prompt_tokens = 3;
+  
+  // Number of tokens generated
+  int32 completion_tokens = 4;
+  
+  // Total tokens used
+  int32 total_tokens = 5;
+  
+  // Time taken for inference in milliseconds
+  int64 inference_time_ms = 6;
+  
+  // The model used for generation
+  string model = 7;
+}
+
+// TokenResponse for streaming responses
+message TokenResponse {
+  // The unique request identifier
+  string request_id = 1;
+  
+  // A single token or chunk of text
+  string token = 2;
+  
+  // Whether this is the final token
+  bool done = 3;
+  
+  // Running count of tokens generated
+  int32 tokens_generated = 4;
+}
+
+// HealthCheckRequest for worker health verification
+message HealthCheckRequest {
+  // Optional: include a timestamp for latency measurement
+  int64 timestamp = 1;
+}
+
+// HealthCheckResponse from worker
+message HealthCheckResponse {
+  // Whether the worker is healthy and ready
+  bool healthy = 1;
+  
+  // Current load on the worker (0.0 - 1.0)
+  float load = 2;
+  
+  // Number of requests currently being processed
+  int32 active_requests = 3;
+  
+  // Worker version for compatibility checks
+  string version = 4;
+  
+  // Whether Ollama is reachable
+  bool ollama_connected = 5;
+}
