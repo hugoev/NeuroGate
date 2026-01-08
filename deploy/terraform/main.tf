@@ -102,8 +102,9 @@ resource "kubernetes_deployment" "worker" {
 
       spec {
         container {
-          name  = "worker"
-          image = var.worker_image
+          name              = "worker"
+          image             = var.worker_image
+          image_pull_policy = "Never" # Use locally loaded images for Kind
 
           port {
             container_port = 50051
@@ -240,8 +241,9 @@ resource "kubernetes_deployment" "gateway" {
 
       spec {
         container {
-          name  = "gateway"
-          image = var.gateway_image
+          name              = "gateway"
+          image             = var.gateway_image
+          image_pull_policy = "Never" # Use locally loaded images for Kind
 
           port {
             container_port = 8080
